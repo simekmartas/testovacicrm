@@ -56,32 +56,45 @@ function PotentialSection({ clientId, onUpdate }: Props) {
   const updateField = (category: string, field: string, value: any) => {
     if (!potential) return;
 
-    setPotential(prev => {
-      if (!prev) return prev;
+    const updatedPotential = { ...potential };
+
+    if (category === 'nonLifeInsurance') {
+      // Speciální handling pro neživotní pojištění
+      const [subCategory, subField] = field.split('.');
+      const currentSubCategory = (updatedPotential.nonLifeInsurance as any)[subCategory] || {};
       
-      if (category === 'nonLifeInsurance') {
-        // Speciální handling pro neživotní pojištění
-        const [subCategory, subField] = field.split('.');
-        return {
-          ...prev,
-          [category]: {
-            ...prev[category as keyof typeof prev.nonLifeInsurance],
-            [subCategory]: {
-              ...(prev[category as keyof typeof prev.nonLifeInsurance] as any)[subCategory],
-              [subField]: value
-            }
-          }
-        };
-      } else {
-        return {
-          ...prev,
-          [category]: {
-            ...(prev[category as keyof typeof prev] as any),
-            [field]: value
-          }
-        };
-      }
-    });
+      (updatedPotential.nonLifeInsurance as any)[subCategory] = {
+        ...currentSubCategory,
+        [subField]: value
+      };
+    } else {
+      // Ostatní kategorie
+      const currentCategory = (updatedPotential as any)[category] || {};
+      (updatedPotential as any)[category] = {
+        ...currentCategory,
+        [field]: value
+      };
+    }
+
+    // Přepočítej celkovou provizi
+    updatedPotential.totalExpectedCommission = 
+      updatedPotential.lifeInsurance.expectedCommission +
+      updatedPotential.investments.expectedCommission +
+      updatedPotential.mortgage.expectedCommission +
+      Object.values(updatedPotential.nonLifeInsurance).reduce((sum: number, item: any) => 
+        sum + (item.interested ? item.expectedCommission : 0), 0
+      );
+
+    // Přepočítej prioritu
+    if (updatedPotential.totalExpectedCommission >= 50000) {
+      updatedPotential.priority = 'VYSOKY';
+    } else if (updatedPotential.totalExpectedCommission >= 20000) {
+      updatedPotential.priority = 'STREDNI';
+    } else {
+      updatedPotential.priority = 'NIZKY';
+    }
+
+    setPotential(updatedPotential);
   };
 
   const getPriorityColor = (priority: string) => {
