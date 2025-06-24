@@ -1,6 +1,9 @@
 [build]
-  command = "npm run build"
+  command = "sed -i \"s/%GITHUB_TOKEN%/$GITHUB_TOKEN/g\" public/env.js && npm run build"
   publish = "build"
+
+[build.environment]
+  CI = "false"
 
 [[redirects]]
   from = "/*"

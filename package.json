@@ -1,5 +1,5 @@
 {
-  "name": "crm-frontend",
+  "name": "crm-financni-poradce",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -7,14 +7,14 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.68",
-    "@types/react": "^18.2.45",
-    "@types/react-dom": "^18.2.18",
+    "@types/node": "^16.18.104",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
     "@heroicons/react": "^2.0.18",
     "axios": "^1.6.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.25.1",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4",
@@ -24,8 +24,9 @@
     "@fullcalendar/react": "^6.1.10",
     "@fullcalendar/timegrid": "^6.1.10",
     "react-beautiful-dnd": "^13.1.1",
-    "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.4.1",
+    "react-hook-form": "^7.52.1",
+    "@types/react-beautiful-dnd": "^13.1.8",
     "date-fns": "^2.30.0",
     "clsx": "^2.0.0"
   },
@@ -54,9 +55,9 @@
     ]
   },
   "devDependencies": {
-    "@types/react-beautiful-dnd": "^13.1.7",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6"
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.40",
+    "tailwindcss": "^3.4.7"
   }
 } 

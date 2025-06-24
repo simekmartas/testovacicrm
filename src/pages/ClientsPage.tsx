@@ -1,161 +1,142 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Client } from '../types';
 import { clientService } from '../services/localStorageService';
-import { Client, WorkflowStage } from '../types';
-import toast from 'react-hot-toast';
-
-const workflowStageNames: Record<WorkflowStage, string> = {
-  [WorkflowStage.NAVOLANI]: 'Navolání',
-  [WorkflowStage.ANALYZA_POTREB]: 'Analýza potřeb',
-  [WorkflowStage.ZPRACOVANI]: 'Zpracování',
-  [WorkflowStage.PRODEJNI_SCHUZKA]: 'Prodejní schůzka',
-  [WorkflowStage.PODPIS]: 'Podpis',
-  [WorkflowStage.SERVIS]: 'Servis',
-};
-
-const workflowStageColors: Record<WorkflowStage, string> = {
-  [WorkflowStage.NAVOLANI]: 'bg-gray-100 text-gray-800',
-  [WorkflowStage.ANALYZA_POTREB]: 'bg-blue-100 text-blue-800',
-  [WorkflowStage.ZPRACOVANI]: 'bg-yellow-100 text-yellow-800',
-  [WorkflowStage.PRODEJNI_SCHUZKA]: 'bg-purple-100 text-purple-800',
-  [WorkflowStage.PODPIS]: 'bg-green-100 text-green-800',
-  [WorkflowStage.SERVIS]: 'bg-indigo-100 text-indigo-800',
-};
 
 function ClientsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
 
   useEffect(() => {
     loadClients();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = clientService.search(searchTerm);
-      setFilteredClients(filtered);
-    } else {
-      setFilteredClients(clients);
-    }
-  }, [searchTerm, clients]);
+  }, [user]);
 
   const loadClients = () => {
-    try {
-      const data = clientService.getAll();
-      setClients(data);
-      setFilteredClients(data);
-    } catch (error) {
-      toast.error('Nepodařilo se načíst klienty');
-    } finally {
-      setIsLoading(false);
+    const allClients = clientService.getAll();
+    // Filtruj klienty podle role
+    const filteredClients = user?.role === 'VEDOUCI' 
+      ? allClients
+      : allClients.filter(client => client.advisorId === user?.id);
+    setClients(filteredClients);
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm('Opravdu chcete smazat tohoto klienta?')) {
+      clientService.delete(id);
+      loadClients();
     }
   };
 
-  if (isLoading) {
+  const filteredClients = clients.filter(client => {
+    const searchLower = searchTerm.toLowerCase();
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Načítání klientů...</div>
-      </div>
+      client.firstName.toLowerCase().includes(searchLower) ||
+      client.lastName.toLowerCase().includes(searchLower) ||
+      client.email.toLowerCase().includes(searchLower) ||
+      (client.phone && client.phone.includes(searchTerm))
     );
-  }
+  });
 
   return (
     <div>
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Seznam všech klientů v systému
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <Link
-            to="/clients/new"
-            className="btn btn-primary inline-flex items-center"
-          >
-            ➕ Nový klient
-          </Link>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
+        <button
+          onClick={() => navigate('/clients/new')}
+          className="btn btn-primary"
+        >
+          + Nový klient
+        </button>
       </div>
 
-      <div className="mt-6">
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <span className="text-gray-400">🔍</span>
-          </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input pl-10"
-            placeholder="Hledat klienty..."
-          />
-        </div>
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Hledat podle jména, emailu nebo telefonu..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="input w-full"
+        />
       </div>
 
-      <div className="mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-300">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                Jméno
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                Email
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                Telefon
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                Poradce
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                Fáze
-              </th>
-              <th scope="col" className="relative px-6 py-3">
-                <span className="sr-only">Akce</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {filteredClients.map((client) => (
-              <tr key={client.id}>
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                  {client.firstName} {client.lastName}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                  {client.email}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                  {client.phone || '-'}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                  {client.advisorName}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm">
-                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${workflowStageColors[client.workflowStage]}`}>
-                    {workflowStageNames[client.workflowStage]}
-                  </span>
-                </td>
-                <td className="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
-                  <Link
-                    to={`/clients/${client.id}`}
-                    className="text-primary-600 hover:text-primary-900"
-                  >
-                    Detail
-                  </Link>
-                </td>
+      <div className="card">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Jméno
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Telefon
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Fáze
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Poradce
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Akce
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredClients.map((client) => (
+                <tr key={client.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link 
+                      to={`/clients/${client.id}`}
+                      className="text-primary-600 hover:text-primary-900"
+                    >
+                      {client.firstName} {client.lastName}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {client.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {client.phone || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {client.workflowStage}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {client.advisorName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Link
+                      to={`/clients/${client.id}/edit`}
+                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    >
+                      Upravit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(client.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Smazat
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         {filteredClients.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm text-gray-500">
-              {searchTerm ? 'Žádní klienti neodpovídají vyhledávání' : 'Zatím nemáte žádné klienty'}
-            </p>
+          <div className="text-center py-8 text-gray-500">
+            {searchTerm 
+              ? 'Žádní klienti nenalezeni.'
+              : 'Zatím nemáte žádné klienty.'}
           </div>
         )}
       </div>
