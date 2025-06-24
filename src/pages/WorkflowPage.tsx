@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { useNavigate } from 'react-router-dom';
 import { Client, WorkflowStage } from '../types';
-import { clientService } from '../services/localStorageService';
+import { clientService, userService } from '../services/localStorageService';
 import { potentialService } from '../services/potentialService';
 import { config, hasGithubAccess } from '../config/environment';
 import { githubClientService } from '../services/githubService';
@@ -30,6 +30,9 @@ function WorkflowPage() {
 
   const loadClients = async () => {
     try {
+      const currentUser = userService.getCurrentUser();
+      console.log('Současný uživatel:', currentUser);
+      
       let data: Client[];
       
       if (hasGithubAccess() && !config.useLocalStorage) {
@@ -39,6 +42,20 @@ function WorkflowPage() {
         // Jinak použij lokální data
         data = clientService.getAll();
       }
+      
+      // Pro debugging načti všechny klienty bez filtrování
+      const allClients = JSON.parse(localStorage.getItem('crm_clients') || '[]');
+      console.log('=== DEBUG INFORMACE ===');
+      console.log('Všichni klienti v localStorage:', allClients);
+      console.log('Filtrovaní klienti (clientService.getAll()):', data);
+      console.log('Počet všech klientů:', allClients.length);
+      console.log('Počet filtrovaných klientů:', data.length);
+      
+      allClients.forEach((client: any) => {
+        console.log(`Klient: ${client.firstName} ${client.lastName}, Fáze: ${client.workflowStage}, AdvisorId: ${client.advisorId}`);
+      });
+      
+      console.log('=== KONEC DEBUG ===');
       
       setClients(data);
       
@@ -55,7 +72,9 @@ function WorkflowPage() {
     } catch (error) {
       toast.error('Nepodařilo se načíst klienty');
       // Fallback na lokální data
-      setClients(clientService.getAll());
+      const fallbackData = clientService.getAll();
+      console.log('Fallback data:', fallbackData);
+      setClients(fallbackData);
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +137,9 @@ function WorkflowPage() {
   };
 
   const getClientsForStage = (stage: WorkflowStage) => {
-    return clients.filter(client => client.workflowStage === stage);
+    const filtered = clients.filter(client => client.workflowStage === stage);
+    console.log(`Fáze ${stage}: ${filtered.length} klientů`, filtered.map(c => `${c.firstName} ${c.lastName}`));
+    return filtered;
   };
 
   const getPriorityColor = (priority?: string) => {

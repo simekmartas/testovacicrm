@@ -29,6 +29,7 @@ function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<{ exists: boolean; percentage: number }>({ exists: false, percentage: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [clientTasks, setClientTasks] = useState<Task[]>([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
   const [showWorkflowModal, setShowWorkflowModal] = useState(false);
@@ -63,6 +64,11 @@ function ClientDetailPage() {
         const percentage = needsAnalysisService.getCompletionPercentage(analysis);
         setAnalysisStatus({ exists: true, percentage });
       }
+      
+      // Načti úkoly klienta
+      const allTasks = taskService.getAll();
+      const tasks = allTasks.filter(task => task.clientId === clientId);
+      setClientTasks(tasks);
     }
     setIsLoading(false);
   };
@@ -137,6 +143,19 @@ function ClientDetailPage() {
       }
     } catch (error) {
       toast.error('Chyba při vytváření schůzky');
+    }
+  };
+
+  const handleTaskComplete = async (taskId: number) => {
+    try {
+      const updatedTask = taskService.complete(taskId);
+      if (updatedTask) {
+        toast.success('Úkol označen jako dokončený');
+        // Aktualizuj seznam úkolů
+        loadClientData(parseInt(id!));
+      }
+    } catch (error) {
+      toast.error('Chyba při označování úkolu');
     }
   };
 
@@ -351,6 +370,102 @@ function ClientDetailPage() {
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{client.notes}</p>
         </div>
       )}
+
+      {/* Úkoly klienta */}
+      <div className="card p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">📋 Úkoly klienta</h2>
+          <span className="text-sm text-gray-500">
+            {clientTasks.filter(t => !t.completed).length} aktivních, {clientTasks.filter(t => t.completed).length} dokončených
+          </span>
+        </div>
+        
+        {clientTasks.length > 0 ? (
+          <div className="space-y-3">
+            {clientTasks
+              .sort((a, b) => {
+                // Nedokončené úkoly nahoře, pak podle data vytvoření
+                if (a.completed !== b.completed) {
+                  return a.completed ? 1 : -1;
+                }
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+              })
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className={`border rounded-lg p-4 ${
+                    task.completed ? 'bg-gray-50 opacity-75' : 'bg-white'
+                  } ${
+                    task.dueDate && new Date(task.dueDate) < new Date() && !task.completed
+                      ? 'border-l-4 border-red-500'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => !task.completed && handleTaskComplete(task.id)}
+                        className="mt-1"
+                        disabled={task.completed}
+                      />
+                      <div className="flex-1">
+                        <h3 className={`font-medium ${
+                          task.completed ? 'line-through text-gray-500' : 'text-gray-900'
+                        }`}>
+                          {task.title}
+                        </h3>
+                        {task.description && (
+                          <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                        )}
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            task.priority === 'URGENT' ? 'bg-red-100 text-red-800' :
+                            task.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                            task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {task.priority === 'URGENT' ? 'Urgentní' :
+                             task.priority === 'HIGH' ? 'Vysoká' :
+                             task.priority === 'MEDIUM' ? 'Střední' : 'Nízká'}
+                          </span>
+                          {task.dueDate && (
+                            <span className={`text-xs ${
+                              new Date(task.dueDate) < new Date() && !task.completed
+                                ? 'text-red-600 font-medium'
+                                : 'text-gray-500'
+                            }`}>
+                              Termín: {new Date(task.dueDate).toLocaleDateString('cs-CZ')}
+                            </span>
+                          )}
+                          {task.completed && task.completedAt && (
+                            <span className="text-xs text-green-600">
+                              ✓ Dokončeno: {new Date(task.completedAt).toLocaleDateString('cs-CZ')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500">
+            <p>Žádné úkoly pro tohoto klienta</p>
+            <button
+              onClick={() => {
+                setDefaultTaskData();
+                setShowTaskForm(true);
+              }}
+              className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+            >
+              Vytvořit první úkol
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Rychlé akce */}
       <div className="card p-6">
