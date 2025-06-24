@@ -1,5 +1,5 @@
 [build]
-  command = "cp public/env.js public/env.js.bak && sed 's/%GITHUB_TOKEN%/'\"$GITHUB_TOKEN\"'/g' public/env.js.bak > public/env.js && npm run build"
+  command = "npm run build"
   publish = "build"
 
 [build.environment]
