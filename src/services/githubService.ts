@@ -1,4 +1,4 @@
-import { Client, Meeting, Task } from '../types';
+import { Client, Meeting, Task, ClientPotential } from '../types';
 import { config } from '../config/environment';
 
 // Base64 encoding/decoding
@@ -197,12 +197,45 @@ export const githubTaskService = {
   },
 };
 
+export const githubPotentialService = {
+  async getAll(): Promise<ClientPotential[]> {
+    const files = await listFiles('potentials');
+    const potentials: ClientPotential[] = [];
+    
+    for (const file of files) {
+      const data = await loadJsonFile(`potentials/${file}`);
+      if (data) potentials.push(data);
+    }
+    
+    return potentials;
+  },
+  
+  async save(potential: ClientPotential): Promise<void> {
+    await saveJsonFile(
+      `potentials/potential-${potential.clientId}.json`,
+      potential,
+      `Update potential for client ${potential.clientId}`
+    );
+  },
+  
+  async delete(clientId: number): Promise<void> {
+    const sha = await getFileSha(`potentials/potential-${clientId}.json`);
+    if (sha) {
+      await githubRequest(`potentials/potential-${clientId}.json`, 'DELETE', {
+        message: `Delete potential for client ${clientId}`,
+        sha,
+        branch: config.github.branch,
+      });
+    }
+  },
+};
+
 // Inicializace struktury repozitáře
 export const initializeRepository = async () => {
   if (!config.github.token) return;
   
   // Vytvoř základní adresáře
-  const dirs = ['clients', 'meetings', 'tasks', 'documents', 'milestones'];
+  const dirs = ['clients', 'meetings', 'tasks', 'documents', 'milestones', 'potentials'];
   
   for (const dir of dirs) {
     try {

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { useNavigate } from 'react-router-dom';
 import { Client, WorkflowStage } from '../types';
 import { clientService } from '../services/localStorageService';
+import { potentialService } from '../services/potentialService';
 import { config, hasGithubAccess } from '../config/environment';
 import { githubClientService } from '../services/githubService';
 import toast from 'react-hot-toast';
@@ -16,9 +18,11 @@ const workflowStages: { id: WorkflowStage; name: string; color: string }[] = [
 ];
 
 function WorkflowPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [clientPotentials, setClientPotentials] = useState<{ [key: number]: any }>({});
 
   useEffect(() => {
     loadClients();
@@ -37,6 +41,17 @@ function WorkflowPage() {
       }
       
       setClients(data);
+      
+      // Načti potenciály pro všechny klienty
+      const potentials: { [key: number]: any } = {};
+      data.forEach(client => {
+        const potential = potentialService.getByClientId(client.id);
+        if (potential) {
+          potentials[client.id] = potential;
+        }
+      });
+      setClientPotentials(potentials);
+      
     } catch (error) {
       toast.error('Nepodařilo se načíst klienty');
       // Fallback na lokální data
@@ -98,8 +113,32 @@ function WorkflowPage() {
     }
   };
 
+  const handleClientClick = (clientId: number) => {
+    navigate(`/clients/${clientId}`);
+  };
+
   const getClientsForStage = (stage: WorkflowStage) => {
     return clients.filter(client => client.workflowStage === stage);
+  };
+
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'VYSOKY': return 'border-l-4 border-red-500';
+      case 'STREDNI': return 'border-l-4 border-yellow-500';
+      case 'NIZKY': return 'border-l-4 border-green-500';
+      default: return '';
+    }
+  };
+
+  const getPotentialSummary = (clientId: number) => {
+    const potential = clientPotentials[clientId];
+    if (!potential || potential.totalExpectedCommission === 0) {
+      return null;
+    }
+    return {
+      total: potential.totalExpectedCommission,
+      priority: potential.priority
+    };
   };
 
   if (isLoading) {
@@ -113,10 +152,10 @@ function WorkflowPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">Workflow Board</h1>
-      <p className="mt-2 text-sm text-gray-700">
-            Přetáhněte klienty mezi fázemi spolupráce
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Workflow Board</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Přetáhněte klienty mezi fázemi spolupráce nebo klikněte na kartu pro detail
           </p>
         </div>
         {hasGithubAccess() && (
@@ -152,46 +191,65 @@ function WorkflowPage() {
                       snapshot.isDraggingOver ? 'bg-gray-100' : ''
                     }`}
                   >
-                    {getClientsForStage(stage.id).map((client, index) => (
-                      <Draggable
-                        key={client.id}
-                        draggableId={client.id.toString()}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`bg-white rounded-lg shadow-sm p-4 mb-2 cursor-move ${
-                              snapshot.isDragging ? 'shadow-lg rotate-1' : ''
-                            }`}
-                          >
-                            <div className="font-medium text-gray-900">
-                              {client.firstName} {client.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500 mt-1">
-                              {client.email}
-                            </div>
-                            {client.phone && (
-                              <div className="text-sm text-gray-500">
-                                {client.phone}
+                    {getClientsForStage(stage.id).map((client, index) => {
+                      const potentialSummary = getPotentialSummary(client.id);
+                      
+                      return (
+                        <Draggable
+                          key={client.id}
+                          draggableId={client.id.toString()}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`bg-white rounded-lg shadow-sm p-4 mb-2 cursor-pointer transition-all ${
+                                snapshot.isDragging ? 'shadow-lg rotate-1' : 'hover:shadow-md'
+                              } ${getPriorityColor(potentialSummary?.priority)}`}
+                              onClick={() => handleClientClick(client.id)}
+                            >
+                              <div className="font-medium text-gray-900">
+                                {client.firstName} {client.lastName}
                               </div>
-                            )}
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-xs text-gray-400">
-                                Poradce: {client.advisorName}
-                              </span>
-                              {client.hasNeedsAnalysis && (
-                                <span className="text-xs bg-green-100 text-green-800 px-1 rounded">
-                                  ✓ Analýza
-                                </span>
+                              <div className="text-sm text-gray-500 mt-1">
+                                {client.email}
+                              </div>
+                              {client.phone && (
+                                <div className="text-sm text-gray-500">
+                                  {client.phone}
+                                </div>
                               )}
+                              
+                              {/* Potenciál */}
+                              {potentialSummary && (
+                                <div className="mt-2 p-2 bg-green-50 rounded text-xs">
+                                  <div className="font-medium text-green-800">
+                                    💰 {potentialSummary.total.toLocaleString('cs-CZ')} Kč
+                                  </div>
+                                  <div className="text-green-600">
+                                    Priorita: {potentialSummary.priority === 'VYSOKY' ? 'Vysoká' : 
+                                              potentialSummary.priority === 'STREDNI' ? 'Střední' : 'Nízká'}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-gray-400">
+                                  Poradce: {client.advisorName}
+                                </span>
+                                {client.hasNeedsAnalysis && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-1 rounded">
+                                    ✓ Analýza
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
+                          )}
+                        </Draggable>
+                      );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -202,7 +260,8 @@ function WorkflowPage() {
       </DragDropContext>
       
       <div className="mt-6 text-sm text-gray-600">
-        <p>💡 Tip: Přetáhněte kartu klienta do jiné fáze pro změnu stavu</p>
+        <p>💡 Tip: Přetáhněte kartu klienta do jiné fáze pro změnu stavu nebo klikněte na kartu pro detail</p>
+        <p>💰 Barevný okraj označuje prioritu podle očekávané provize (červená = vysoká, žlutá = střední, zelená = nízká)</p>
         {hasGithubAccess() ? (
           <p className="text-green-600">✓ Data se ukládají na GitHub</p>
         ) : (

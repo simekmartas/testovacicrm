@@ -23,6 +23,53 @@ export enum TaskPriority {
   URGENT = 'URGENT'
 }
 
+// Potenciál klienta
+export interface ClientPotential {
+  id: number;
+  clientId: number;
+  lifeInsurance: {
+    interested: boolean;
+    expectedCommission: number;
+    notes?: string;
+  };
+  investments: {
+    interested: boolean;
+    expectedCommission: number;
+    notes?: string;
+  };
+  mortgage: {
+    interested: boolean;
+    expectedCommission: number;
+    notes?: string;
+  };
+  nonLifeInsurance: {
+    auto: {
+      interested: boolean;
+      expectedCommission: number;
+      notes?: string;
+    };
+    property: {
+      interested: boolean;
+      expectedCommission: number;
+      notes?: string;
+    };
+    household: {
+      interested: boolean;
+      expectedCommission: number;
+      notes?: string;
+    };
+    liability: {
+      interested: boolean;
+      expectedCommission: number;
+      notes?: string;
+    };
+  };
+  totalExpectedCommission: number;
+  priority: 'NIZKY' | 'STREDNI' | 'VYSOKY';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // User interface
 export interface User {
   id: number;
@@ -59,6 +106,7 @@ export interface Client {
   documentsCount: number;
   meetingsCount: number;
   fullName?: string;
+  potential?: ClientPotential;
 }
 
 // Meeting interface
@@ -121,8 +169,6 @@ export interface LifeMilestone {
   clientId: number;
   createdAt: string;
 }
-
-
 
 // Auth interfaces
 export interface LoginRequest {

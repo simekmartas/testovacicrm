@@ -305,6 +305,24 @@ export const meetingService = {
     saveToStorage(STORAGE_KEYS.MEETINGS, filtered);
     return true;
   },
+  
+  getUpcoming: (userId?: number): Meeting[] => {
+    const currentUser = userService.getCurrentUser();
+    const meetings = getFromStorage<Meeting>(STORAGE_KEYS.MEETINGS);
+    const now = new Date();
+    
+    let filteredMeetings = meetings;
+    
+    if (currentUser?.role !== UserRole.VEDOUCI && userId) {
+      filteredMeetings = meetings.filter(m => m.userId === userId);
+    } else if (currentUser?.role !== UserRole.VEDOUCI) {
+      filteredMeetings = meetings.filter(m => m.userId === currentUser?.id);
+    }
+    
+    return filteredMeetings
+      .filter(m => new Date(m.startTime) > now)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  },
 };
 
 // Task service
@@ -375,5 +393,28 @@ export const taskService = {
     
     saveToStorage(STORAGE_KEYS.TASKS, filtered);
     return true;
+  },
+  
+  getByUserId: (userId: number): Task[] => {
+    const tasks = getFromStorage<Task>(STORAGE_KEYS.TASKS);
+    return tasks.filter(t => t.assignedToId === userId || t.createdById === userId);
+  },
+  
+  getOverdue: (userId?: number): Task[] => {
+    const currentUser = userService.getCurrentUser();
+    const tasks = getFromStorage<Task>(STORAGE_KEYS.TASKS);
+    const now = new Date();
+    
+    let filteredTasks = tasks;
+    
+    if (currentUser?.role !== UserRole.VEDOUCI && userId) {
+      filteredTasks = tasks.filter(t => t.assignedToId === userId || t.createdById === userId);
+    } else if (currentUser?.role !== UserRole.VEDOUCI) {
+      filteredTasks = tasks.filter(t => t.assignedToId === currentUser?.id || t.createdById === currentUser?.id);
+    }
+    
+    return filteredTasks
+      .filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < now)
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
   },
 }; 

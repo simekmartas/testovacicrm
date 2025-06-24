@@ -1,15 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Client } from '../types';
-import { clientService } from '../services/localStorageService';
+import { Client, Task, Meeting, TaskPriority } from '../types';
+import { clientService, taskService, meetingService } from '../services/localStorageService';
 import { needsAnalysisService } from '../services/needsAnalysisService';
+import { useAuth } from '../contexts/AuthContext';
+import PotentialSection from '../components/PotentialSection';
+import toast from 'react-hot-toast';
+
+interface TaskFormData {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  dueDate: string;
+}
+
+interface MeetingFormData {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+}
 
 function ClientDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [analysisStatus, setAnalysisStatus] = useState<{ exists: boolean; percentage: number }>({ exists: false, percentage: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showMeetingForm, setShowMeetingForm] = useState(false);
+  const [taskFormData, setTaskFormData] = useState<TaskFormData>({
+    title: '',
+    description: '',
+    priority: TaskPriority.MEDIUM,
+    dueDate: ''
+  });
+  const [meetingFormData, setMeetingFormData] = useState<MeetingFormData>({
+    title: '',
+    description: '',
+    startTime: '',
+    endTime: '',
+    location: ''
+  });
 
   useEffect(() => {
     if (id) {
@@ -38,6 +72,100 @@ function ClientDetailPage() {
         clientService.delete(parseInt(id));
         navigate('/clients');
       }
+    }
+  };
+
+  const handleTaskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!taskFormData.title.trim()) {
+      toast.error('Název úkolu je povinný');
+      return;
+    }
+
+    try {
+      const newTask = taskService.create({
+        ...taskFormData,
+        clientId: parseInt(id!)
+      });
+      
+      if (newTask) {
+        toast.success('Úkol byl vytvořen');
+        setShowTaskForm(false);
+        setTaskFormData({
+          title: '',
+          description: '',
+          priority: TaskPriority.MEDIUM,
+          dueDate: ''
+        });
+      }
+    } catch (error) {
+      toast.error('Chyba při vytváření úkolu');
+    }
+  };
+
+  const handleMeetingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!meetingFormData.title.trim() || !meetingFormData.startTime || !meetingFormData.endTime) {
+      toast.error('Název, začátek a konec schůzky jsou povinné');
+      return;
+    }
+
+    if (new Date(meetingFormData.startTime) >= new Date(meetingFormData.endTime)) {
+      toast.error('Začátek musí být před koncem schůzky');
+      return;
+    }
+
+    try {
+      const newMeeting = meetingService.create({
+        ...meetingFormData,
+        clientId: parseInt(id!)
+      });
+      
+      if (newMeeting) {
+        toast.success('Schůzka byla vytvořena');
+        setShowMeetingForm(false);
+        setMeetingFormData({
+          title: '',
+          description: '',
+          startTime: '',
+          endTime: '',
+          location: ''
+        });
+      }
+    } catch (error) {
+      toast.error('Chyba při vytváření schůzky');
+    }
+  };
+
+  const setDefaultTaskData = () => {
+    if (client) {
+      setTaskFormData({
+        ...taskFormData,
+        title: `Úkol pro ${client.firstName} ${client.lastName}`,
+        description: `Úkol související s klientem ${client.firstName} ${client.lastName}`
+      });
+    }
+  };
+
+  const setDefaultMeetingData = () => {
+    if (client) {
+      // Nastav výchozí čas na zítra od 10:00 do 11:00
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      
+      const endTime = new Date(tomorrow);
+      endTime.setHours(11, 0, 0, 0);
+      
+      setMeetingFormData({
+        ...meetingFormData,
+        title: `Schůzka s ${client.firstName} ${client.lastName}`,
+        description: `Schůzka s klientem ${client.firstName} ${client.lastName}`,
+        startTime: tomorrow.toISOString().slice(0, 16),
+        endTime: endTime.toISOString().slice(0, 16)
+      });
     }
   };
 
@@ -85,6 +213,11 @@ function ClientDetailPage() {
             Smazat
           </button>
         </div>
+      </div>
+
+      {/* Potenciál klienta */}
+      <div className="mb-6">
+        <PotentialSection clientId={parseInt(id!)} />
       </div>
 
       {/* Analýza potřeb */}
@@ -189,10 +322,22 @@ function ClientDetailPage() {
       <div className="card p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Rychlé akce</h2>
         <div className="flex flex-wrap gap-3">
-          <button className="btn btn-secondary">
+          <button
+            onClick={() => {
+              setDefaultMeetingData();
+              setShowMeetingForm(true);
+            }}
+            className="btn btn-secondary"
+          >
             📅 Naplánovat schůzku
           </button>
-          <button className="btn btn-secondary">
+          <button
+            onClick={() => {
+              setDefaultTaskData();
+              setShowTaskForm(true);
+            }}
+            className="btn btn-secondary"
+          >
             ✅ Vytvořit úkol
           </button>
           <button className="btn btn-secondary">
@@ -203,6 +348,166 @@ function ClientDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Formulář úkolu */}
+      {showTaskForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Nový úkol pro {client.firstName} {client.lastName}
+              </h3>
+              <form onSubmit={handleTaskSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Název úkolu *</label>
+                  <input
+                    type="text"
+                    value={taskFormData.title}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+                    className="input w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Popis</label>
+                  <textarea
+                    value={taskFormData.description}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+                    rows={3}
+                    className="input w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Priorita</label>
+                  <select
+                    value={taskFormData.priority}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, priority: e.target.value as TaskPriority })}
+                    className="input w-full"
+                  >
+                    <option value={TaskPriority.LOW}>Nízká</option>
+                    <option value={TaskPriority.MEDIUM}>Střední</option>
+                    <option value={TaskPriority.HIGH}>Vysoká</option>
+                    <option value={TaskPriority.URGENT}>Urgentní</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Termín dokončení</label>
+                  <input
+                    type="date"
+                    value={taskFormData.dueDate}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, dueDate: e.target.value })}
+                    className="input w-full"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowTaskForm(false)}
+                    className="btn btn-secondary"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                  >
+                    Vytvořit úkol
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Formulář schůzky */}
+      {showMeetingForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Nová schůzka s {client.firstName} {client.lastName}
+              </h3>
+              <form onSubmit={handleMeetingSubmit} className="space-y-4">
+                <div>
+                  <label className="label">Název schůzky *</label>
+                  <input
+                    type="text"
+                    value={meetingFormData.title}
+                    onChange={(e) => setMeetingFormData({ ...meetingFormData, title: e.target.value })}
+                    className="input w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Popis</label>
+                  <textarea
+                    value={meetingFormData.description}
+                    onChange={(e) => setMeetingFormData({ ...meetingFormData, description: e.target.value })}
+                    rows={3}
+                    className="input w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Začátek *</label>
+                    <input
+                      type="datetime-local"
+                      value={meetingFormData.startTime}
+                      onChange={(e) => setMeetingFormData({ ...meetingFormData, startTime: e.target.value })}
+                      className="input w-full"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Konec *</label>
+                    <input
+                      type="datetime-local"
+                      value={meetingFormData.endTime}
+                      onChange={(e) => setMeetingFormData({ ...meetingFormData, endTime: e.target.value })}
+                      className="input w-full"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Místo konání</label>
+                  <input
+                    type="text"
+                    value={meetingFormData.location}
+                    onChange={(e) => setMeetingFormData({ ...meetingFormData, location: e.target.value })}
+                    className="input w-full"
+                    placeholder="Kancelář, online, adresa..."
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowMeetingForm(false)}
+                    className="btn btn-secondary"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                  >
+                    Vytvořit schůzku
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
