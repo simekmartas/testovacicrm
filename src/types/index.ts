@@ -122,32 +122,7 @@ export interface LifeMilestone {
   createdAt: string;
 }
 
-// Needs Analysis interface
-export interface NeedsAnalysis {
-  id: number;
-  clientId: number;
-  monthlyIncome?: number;
-  monthlyExpenses?: number;
-  savings?: number;
-  debts?: number;
-  maritalStatus?: string;
-  numberOfChildren?: number;
-  dependentPersons?: number;
-  shortTermGoals?: string;
-  longTermGoals?: string;
-  hasLifeInsurance: boolean;
-  hasHealthInsurance: boolean;
-  hasPropertyInsurance: boolean;
-  hasLiabilityInsurance: boolean;
-  investmentExperience?: string;
-  riskTolerance?: string;
-  hasPensionSavings: boolean;
-  pensionMonthlyContribution?: number;
-  additionalNotes?: string;
-  completed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+
 
 // Auth interfaces
 export interface LoginRequest {
