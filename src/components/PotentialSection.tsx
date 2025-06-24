@@ -41,8 +41,9 @@ function PotentialSection({ clientId, onUpdate }: Props) {
       if (hasGithubAccess()) {
         try {
           await githubPotentialService.save(updated);
-          toast.success('Data synchronizována s GitHub');
+          console.log('GitHub save successful for potential:', updated.id);
         } catch (error) {
+          console.error('GitHub save failed:', error);
           toast.error('Nepodařilo se uložit na GitHub, změny zůstávají lokálně');
         }
       }

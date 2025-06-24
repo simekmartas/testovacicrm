@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Client, Task, Meeting, TaskPriority } from '../types';
+import { Client, Task, Meeting, TaskPriority, WorkflowStage } from '../types';
 import { clientService, taskService, meetingService } from '../services/localStorageService';
 import { needsAnalysisService } from '../services/needsAnalysisService';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,7 @@ function ClientDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
   const [taskFormData, setTaskFormData] = useState<TaskFormData>({
     title: '',
     description: '',
@@ -136,6 +137,33 @@ function ClientDetailPage() {
       }
     } catch (error) {
       toast.error('Chyba při vytváření schůzky');
+    }
+  };
+
+  const handleWorkflowChange = async (newStage: WorkflowStage) => {
+    if (!client) return;
+
+    try {
+      const updated = clientService.updateWorkflowStage(client.id, newStage);
+      if (updated) {
+        setClient(updated);
+        setShowWorkflowModal(false);
+        toast.success('Fáze spolupráce byla změněna');
+      }
+    } catch (error) {
+      toast.error('Chyba při změně fáze spolupráce');
+    }
+  };
+
+  const getWorkflowStageLabel = (stage: WorkflowStage) => {
+    switch (stage) {
+      case WorkflowStage.NAVOLANI: return 'Navolání';
+      case WorkflowStage.ANALYZA_POTREB: return 'Analýza potřeb';
+      case WorkflowStage.ZPRACOVANI: return 'Zpracování';
+      case WorkflowStage.PRODEJNI_SCHUZKA: return 'Prodejní schůzka';
+      case WorkflowStage.PODPIS: return 'Podpis';
+      case WorkflowStage.SERVIS: return 'Servis';
+      default: return stage;
     }
   };
 
@@ -279,10 +307,16 @@ function ClientDetailPage() {
           </div>
           <div>
             <dt className="text-sm font-medium text-gray-500">Fáze spolupráce</dt>
-            <dd className="mt-1">
+            <dd className="mt-1 flex items-center space-x-2">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {client.workflowStage}
+                {getWorkflowStageLabel(client.workflowStage)}
               </span>
+              <button
+                onClick={() => setShowWorkflowModal(true)}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Změnit
+              </button>
             </dd>
           </div>
           <div>
@@ -504,6 +538,45 @@ function ClientDetailPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Workflow modal */}
+      {showWorkflowModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Změnit fázi spolupráce
+              </h3>
+              <div className="space-y-2">
+                {Object.values(WorkflowStage).map(stage => (
+                  <button
+                    key={stage}
+                    onClick={() => handleWorkflowChange(stage)}
+                    className={`w-full text-left p-3 rounded-md border ${
+                      client?.workflowStage === stage 
+                        ? 'bg-blue-100 border-blue-300 text-blue-900' 
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {getWorkflowStageLabel(stage)}
+                    {client?.workflowStage === stage && (
+                      <span className="ml-2 text-blue-600">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <button
+                  onClick={() => setShowWorkflowModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Zrušit
+                </button>
+              </div>
             </div>
           </div>
         </div>

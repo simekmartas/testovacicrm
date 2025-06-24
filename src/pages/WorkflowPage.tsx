@@ -141,6 +141,14 @@ function WorkflowPage() {
     };
   };
 
+  const getStageTotalPotential = (stage: WorkflowStage) => {
+    const stageClients = getClientsForStage(stage);
+    return stageClients.reduce((total, client) => {
+      const potential = clientPotentials[client.id];
+      return total + (potential ? potential.totalExpectedCommission : 0);
+    }, 0);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -173,13 +181,19 @@ function WorkflowPage() {
         <div className="flex gap-4 overflow-x-auto pb-4">
           {workflowStages.map(stage => (
             <div key={stage.id} className="flex-shrink-0 w-80">
-              <div className={`${stage.color} rounded-t-lg px-4 py-2`}>
+              <div className={`${stage.color} rounded-t-lg px-4 py-3`}>
                 <h3 className="font-semibold text-gray-800">
                   {stage.name}
                   <span className="ml-2 text-sm text-gray-600">
                     ({getClientsForStage(stage.id).length})
                   </span>
                 </h3>
+                <div className="mt-1 text-sm">
+                  <span className="font-medium text-green-700">
+                    💰 {getStageTotalPotential(stage.id).toLocaleString('cs-CZ')} Kč
+                  </span>
+                  <span className="text-gray-500 ml-1">potenciál</span>
+                </div>
               </div>
               
               <Droppable droppableId={stage.id}>
