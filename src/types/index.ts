@@ -166,4 +166,118 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   error?: string;
+}
+
+// Nové typy pro analýzu potřeb
+export interface NeedsAnalysisGoals {
+  incomeProtection: {
+    interested: boolean;
+    notes: string;
+  };
+  housing: {
+    interested: boolean;
+    reason: string;
+  };
+  pension: {
+    interested: boolean;
+    currentSituation: string;
+    desiredSolution: string;
+  };
+  children: {
+    hasChildren: boolean;
+    savingForEducation: boolean;
+    amount?: number;
+    notes: string;
+  };
+  savings: {
+    interested: boolean;
+    currentSavings: number;
+    reason: string;
+  };
+  assetProtection: {
+    interested: boolean;
+    assets: string[];
+    reason: string;
+  };
+  other: {
+    taxOptimization: boolean;
+    stateSupport: boolean;
+    lifeGoals: string;
+  };
+}
+
+export interface ExistingProduct {
+  id: string;
+  type: string;
+  company: string;
+  reason: string;
+  usage: string;
+  pros: string;
+  cons: string;
+  advisor: string;
+  hasContract: boolean;
+}
+
+export interface CashFlow {
+  officialIncome: number;
+  additionalIncome: number;
+  employmentType: 'URCITA' | 'NEURCITA' | 'OSVC';
+  employerContribution?: number;
+  expenses: number;
+  loans: number;
+  overdraft: number;
+}
+
+export interface InsuranceDetails {
+  risks: string[];
+  healthStatus: {
+    isHealthy: boolean;
+    allergies: string;
+    medications: string;
+    procedures: string;
+    diabetes: boolean;
+    other: string;
+  };
+  physicalInfo: {
+    height: number;
+    weight: number;
+    smoker: boolean;
+  };
+  sports: string[];
+  budget: number;
+  includedPersons: string[];
+}
+
+export interface HousingDetails {
+  goal: string;
+  amount: number;
+  timeline: string;
+  currentSavings: number;
+  monthlyPayment: number;
+  coOwner: boolean;
+  collateral: string;
+}
+
+export interface InvestmentDetails {
+  targetAmount: number;
+  monthlyInvestment: number;
+  timeHorizon: number;
+  liquidityImportant: boolean;
+  preferredInvestments: string[];
+  riskTolerance: 'KONZERVATIVNI' | 'VYVAZENY' | 'DYNAMICKY';
+}
+
+export interface NeedsAnalysis {
+  id: number;
+  clientId: number;
+  goals: NeedsAnalysisGoals;
+  existingProducts: ExistingProduct[];
+  cashFlow: CashFlow;
+  insuranceDetails?: InsuranceDetails;
+  housingDetails?: HousingDetails;
+  investmentDetails?: InvestmentDetails;
+  createdAt: string;
+  updatedAt: string;
+  completedSections: string[];
+  isComplete: boolean;
 } 

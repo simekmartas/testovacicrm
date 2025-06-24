@@ -113,9 +113,9 @@ function WorkflowPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Workflow Board</h1>
-          <p className="mt-2 text-sm text-gray-700">
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">Workflow Board</h1>
+      <p className="mt-2 text-sm text-gray-700">
             Přetáhněte klienty mezi fázemi spolupráce
           </p>
         </div>

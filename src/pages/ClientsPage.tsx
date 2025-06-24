@@ -43,93 +43,93 @@ function ClientsPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Klienti</h1>
         <button
           onClick={() => navigate('/clients/new')}
           className="btn btn-primary"
-        >
+          >
           + Nový klient
         </button>
       </div>
 
       <div className="mb-6">
-        <input
-          type="text"
+          <input
+            type="text"
           placeholder="Hledat podle jména, emailu nebo telefonu..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           className="input w-full"
-        />
+          />
       </div>
 
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
+          <thead className="bg-gray-50">
+            <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Jméno
-                </th>
+                Jméno
+              </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
+                Email
+              </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Telefon
-                </th>
+                Telefon
+              </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fáze
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Poradce
-                </th>
+                Poradce
+              </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Akce
-                </th>
-              </tr>
-            </thead>
+              </th>
+            </tr>
+          </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
+            {filteredClients.map((client) => (
                 <tr key={client.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Link 
                       to={`/clients/${client.id}`}
                       className="text-primary-600 hover:text-primary-900"
                     >
-                      {client.firstName} {client.lastName}
+                  {client.firstName} {client.lastName}
                     </Link>
-                  </td>
+                </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.email}
-                  </td>
+                  {client.email}
+                </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.phone || '-'}
-                  </td>
+                  {client.phone || '-'}
+                </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                       {client.workflowStage}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.advisorName}
-                  </td>
+                  {client.advisorName}
+                </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
+                  <Link
                       to={`/clients/${client.id}/edit`}
                       className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
+                  >
                       Upravit
-                    </Link>
+                  </Link>
                     <button
                       onClick={() => handleDelete(client.id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Smazat
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         </div>
 
         {filteredClients.length === 0 && (

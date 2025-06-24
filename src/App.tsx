@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import ClientDetailPage from './pages/ClientDetailPage';
 import ClientFormPage from './pages/ClientFormPage';
+import NeedsAnalysisPage from './pages/NeedsAnalysisPage';
 import CalendarPage from './pages/CalendarPage';
 import TasksPage from './pages/TasksPage';
 import WorkflowPage from './pages/WorkflowPage';
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="clients/new" element={<ClientFormPage />} />
         <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="clients/:id/edit" element={<ClientFormPage />} />
+        <Route path="clients/:clientId/needs-analysis" element={<NeedsAnalysisPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="workflow" element={<WorkflowPage />} />
